@@ -61,7 +61,7 @@ class Nozzle:
         ValueError
             If x is outside the range [0, length].
         """
-        if x < 0 or x > self.length:
+        if np.any((x < 0) | (x > self.length)):
             raise ValueError(f"x must be within the range [0, {self.length}]")
         return 1 + self.coeff_conv_div * (x - self.length / 2) ** 2
     
@@ -97,7 +97,7 @@ class Nozzle:
             The cross-sectional area at each position is computed using the 'get_area' method.
         """
         x_values = np.linspace(0, self.length, self.discretization_points)
-        areas = [self.get_area(x) for x in x_values]
+        areas = np.array([self.get_area(x) for x in x_values])
         return x_values, areas
 
     def plot_nozzle_profile(self, num_points=100):

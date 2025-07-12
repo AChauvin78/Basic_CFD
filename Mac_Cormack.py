@@ -268,9 +268,9 @@ class Mac_Cormack:
                 Array of temperature profiles at each iteration.
         """
         # Initialize the variables to save the values of the intermediate iterations to plot the evolution
-        V_for_all_ite = np.zeros((n_ite, len(V0)))
-        rho_for_all_ite = np.zeros((n_ite, len(rho0)))
-        T_for_all_ite = np.zeros((n_ite, len(T0)))
+        V_for_all_ite = np.zeros((n_ite, len(self.V0)))
+        rho_for_all_ite = np.zeros((n_ite, len(self.rho0)))
+        T_for_all_ite = np.zeros((n_ite, len(self.T0)))
         V_for_all_ite[0] = V0
         rho_for_all_ite[0] = rho0
         T_for_all_ite[0] = T0
@@ -380,10 +380,51 @@ class Mac_Cormack:
         plt.grid()
         plt.legend()
 
+    def plot_contour(self, x, r, variable, variable_name, ny=100):
+        """Plot a contour plot of a variable along the nozzle.
+        Parameters
+        ----------
+        x : np.ndarray
+            Axial positions along the nozzle.
+        r : np.ndarray
+            Radius values of the nozzle.
+        variable : np.ndarray
+            Variable to be plotted (e.g., velocity, density, temperature).
+        variable_name : str
+            Name of the variable for labeling the plot.
+        """
+        # Créer la grille Y symétrique autour de 0
+        y = np.linspace(-1, 1, ny)
+        X, Y = np.meshgrid(x, y)
+
+        # 3. Masque pour rester dans la géométrie de la tuyère
+        R_2D = np.interp(X[0], x, r)  # rayon au point x
+        R_2D = np.tile(R_2D, (ny, 1))
+
+        mask = np.abs(Y) <= R_2D
+
+        # 4. Étendre le champ de Mach en 2D
+        variable_2D = np.tile(variable, (ny, 1))
+
+        # Appliquer le masque
+        variable_2D[~mask] = np.nan  # on met à NaN l'extérieur de la tuyère
+
+
+        plt.figure(figsize=(12, 4))
+        contour = plt.contourf(X, Y, variable_2D, levels=50, cmap='plasma')
+        plt.colorbar(label=variable_name)
+        plt.title(f'Contour of {variable_name} along the nozzle')
+        plt.xlabel('Axial Position')
+        plt.ylabel('Radius')
+
 if __name__ == '__main__':
-    x = np.linspace(0, 3, 31)
+
+    from Nozzle import Nozzle
+    nozzle = Nozzle(length=3, coeff_conv_div=2.2, discretization_points=31)
+    x, A = nozzle.discretize()
+    r = nozzle.get_radius(x)
+
     delta_X = x[1] - x[0]
-    A = 1 + 2.2*(x-1.5)**2
     rho0 = 1 - 0.3146*x
     T0 = 1 - 0.2314*x
     V0 = (0.1 + 1.09*x)*T0**(1/2)
@@ -394,6 +435,8 @@ if __name__ == '__main__':
     mac_cormack.plot_evolution_during_loop(V_for_all_ite, rho_for_all_ite, T_for_all_ite)
     mac_cormack.plot_final_state(V_for_all_ite[-1], rho_for_all_ite[-1], T_for_all_ite[-1])
     mac_cormack.plot_residuals()
+    Mach = V_for_all_ite[-1] / (T_for_all_ite[-1]**(1/2))
+    mac_cormack.plot_contour(x, r, Mach, 'Mach')
 
     plt.tight_layout()
     plt.show()
