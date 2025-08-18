@@ -237,6 +237,8 @@ class Mac_Cormack:
     
     def calculate_delta_t(self, T, V):
         """Calculate the time step based on the Courant condition.
+        Use the minimum of the time steps calculated for each point along the nozzle.
+
         Parameters
         ----------
         T : np.ndarray
@@ -286,7 +288,7 @@ class Mac_Cormack:
         
 
     def plot_evolution_during_loop(self, V_for_all_ite, rho_for_all_ite, T_for_all_ite):
-        """Plot the evolution of velocity, density, and temperature during iterations.
+        """Plot the evolution of velocity, density, temperature and mach during iterations.
         Parameters
         ----------
         V_for_all_ite : np.ndarray
@@ -319,6 +321,14 @@ class Mac_Cormack:
         axs[1, 0].set_title('Temperature Evolution')
         axs[1, 0].set_xlabel('Iteration')
         axs[1, 0].set_ylabel('$T/T_0$ [-]')
+
+        # plot Mach evolution at throat
+        M = V_for_all_ite[:, len(V_for_all_ite[0])//2] / (T_for_all_ite[:, len(T_for_all_ite[0])//2]**(1/2))
+        axs[1, 1].plot(M)
+        axs[1, 1].grid()
+        axs[1, 1].set_title('Mach Evolution')
+        axs[1, 1].set_xlabel('Iteration')
+        axs[1, 1].set_ylabel('$Mach$ [-]')
 
     def plot_final_state(self, V, rho, T):
         """Plot the final state profiles of velocity, density, and temperature.
@@ -408,7 +418,6 @@ class Mac_Cormack:
 
         # Appliquer le masque
         variable_2D[~mask] = np.nan  # on met à NaN l'extérieur de la tuyère
-
 
         plt.figure(figsize=(12, 4))
         contour = plt.contourf(X, Y, variable_2D, levels=50, cmap='plasma')
