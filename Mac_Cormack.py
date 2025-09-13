@@ -274,9 +274,9 @@ class Mac_Cormack:
         V_for_all_ite = np.zeros((n_ite, len(self.V0)))
         rho_for_all_ite = np.zeros((n_ite, len(self.rho0)))
         T_for_all_ite = np.zeros((n_ite, len(self.T0)))
-        V_for_all_ite[0] = V0
-        rho_for_all_ite[0] = rho0
-        T_for_all_ite[0] = T0
+        V_for_all_ite[0] = self.V0
+        rho_for_all_ite[0] = self.rho0
+        T_for_all_ite[0] = self.T0
 
         # Main loop
         for i in range(n_ite-1):
@@ -429,26 +429,3 @@ class Mac_Cormack:
         plt.xlabel(r'$x_{adim} [-]$')
         plt.ylabel(r'$r_{adim} [-]$')
 
-if __name__ == '__main__':
-
-    from Nozzle import Nozzle
-    nozzle = Nozzle(length=3, coeff_conv_div=2.2, discretization_points=31)
-    x, A = nozzle.discretize()
-    r = nozzle.get_radius(x)
-
-    delta_X = x[1] - x[0]
-    rho0 = 1 - 0.3146*x
-    T0 = 1 - 0.2314*x
-    V0 = (0.1 + 1.09*x)*T0**(1/2)
-    courant_number = 0.5
-
-    mac_cormack = Mac_Cormack(V0, rho0, T0, A, delta_X, courant_number)
-    V_for_all_ite, rho_for_all_ite, T_for_all_ite = mac_cormack.loop_over_iterations(1000)
-    mac_cormack.plot_evolution_during_loop(V_for_all_ite, rho_for_all_ite, T_for_all_ite)
-    mac_cormack.plot_final_state(V_for_all_ite[-1], rho_for_all_ite[-1], T_for_all_ite[-1])
-    mac_cormack.plot_residuals()
-    Mach = V_for_all_ite[-1] / (T_for_all_ite[-1]**(1/2))
-    mac_cormack.plot_contour(x, r, Mach, 'Mach')
-
-    plt.tight_layout()
-    plt.show()
