@@ -27,7 +27,7 @@ class Nozzle:
         Plot the nozzle profile based on the calculated areas and radii.
     """
 
-    def __init__(self, length, coeff_conv_div, discretization_points=100):
+    def __init__(self, length, coeff_conv_div, coeff_conv_div_after_throat=None, discretization_points=100):
         """ Initialize the Nozzle with given parameters.
         Parameters 
         ----------
@@ -35,12 +35,15 @@ class Nozzle:
             The length of the nozzle.
         coeff_conv_div : float
             Coefficient for the conversion/divergence of the nozzle area.
+        coeff_conv_div_after_throat : float, optional
+            Coefficient for the divergence of the nozzle area after the throat. If None, only use coeff_conv_div.
         discretization_points : int
             Number of points to discretize the nozzle for calculations.
         """
             
         self.length = length
         self.coeff_conv_div = coeff_conv_div
+        self.coeff_conv_div_after_throat = coeff_conv_div if coeff_conv_div_after_throat is None else coeff_conv_div_after_throat
         self.discretization_points = discretization_points
 
     def get_area(self, x):
@@ -63,7 +66,10 @@ class Nozzle:
         """
         if np.any((x < 0) | (x > self.length)):
             raise ValueError(f"x must be within the range [0, {self.length}]")
-        return 1 + self.coeff_conv_div * (x - self.length / 2) ** 2
+        if x <= self.length / 2:
+            return 1 + self.coeff_conv_div * (x - self.length / 2) ** 2
+        else:
+            return 1 + self.coeff_conv_div_after_throat * (x - self.length / 2) ** 2
     
     def get_radius(self, x):
         """
@@ -80,8 +86,8 @@ class Nozzle:
             then calculates the corresponding radius assuming a circular cross-section.
         """
         """Calculate the radius of the nozzle at position x."""
-        area = self.get_area(x)
-        return np.sqrt(area / np.pi)
+        area = [self.get_area(x) for x in x] if isinstance(x, (list, np.ndarray)) else self.get_area(x)
+        return [np.sqrt(area / np.pi) for area in area] if isinstance(area, (list, np.ndarray)) else np.sqrt(area / np.pi)
 
     def discretize(self):
         """

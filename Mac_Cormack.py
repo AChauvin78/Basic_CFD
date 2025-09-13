@@ -47,7 +47,7 @@ class Mac_Cormack:
         Plot the residuals of the calculations.
     """
 
-    def __init__(self, V0, rho0, T0, A, delta_X, courant_number, gamma=1.4):
+    def __init__(self, V0, rho0, T0, A, delta_X, courant_number, supersonic=True, pe=None, gamma=1.4):
         """ Initialize the MacCormack method with given parameters.
         Parameters
         ----------
@@ -72,6 +72,8 @@ class Mac_Cormack:
         self.A = A
         self.delta_X = delta_X
         self.courant_number = courant_number
+        self.supersonic = supersonic
+        self.pe = pe
         self.gamma = gamma
         self.residuals = {'rho': [], 'V': [], 'T': []}
 
@@ -229,10 +231,15 @@ class Mac_Cormack:
         # Compute the variables at the boundaries
         # At the inlet, only the velocity is allowed to float, rho and T are constant
         V_corrected_next_step[0] = 2*V_corrected_next_step[1] - V_corrected_next_step[2]
-        # At the outlet, all the variables are allowed to float
-        rho_corrected_next_step[-1] = 2*rho_corrected_next_step[-2] - rho_corrected_next_step[-3]
-        V_corrected_next_step[-1] = 2*V_corrected_next_step[-2] - V_corrected_next_step[-3]
-        T_corrected_next_step[-1] = 2*T_corrected_next_step[-2] - T_corrected_next_step[-3]
+        # At the outlet, all the variables are allowed to float when supersonic
+        if self.supersonic:
+            rho_corrected_next_step[-1] = 2*rho_corrected_next_step[-2] - rho_corrected_next_step[-3]
+            V_corrected_next_step[-1] = 2*V_corrected_next_step[-2] - V_corrected_next_step[-3]
+            T_corrected_next_step[-1] = 2*T_corrected_next_step[-2] - T_corrected_next_step[-3]
+        else: # if subsonic, impose the static pressure at the exit
+            rho_corrected_next_step[-1] = self.pe / T_corrected_next_step[-1]
+            V_corrected_next_step[-1] = 2*V_corrected_next_step[-2] - V_corrected_next_step[-3]
+            T_corrected_next_step[-1] = 2*T_corrected_next_step[-2] - T_corrected_next_step[-3]
 
         return V_corrected_next_step, rho_corrected_next_step, T_corrected_next_step
     
