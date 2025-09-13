@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.interpolate import interp1d
 
 class Mac_Cormack:
     """
@@ -390,7 +391,7 @@ class Mac_Cormack:
         plt.grid()
         plt.legend()
 
-    def plot_contour(self, x, r, variable, variable_name, ny=100):
+    def plot_contour(self, x, r, variable, variable_name, n_interpolated=1000):
         """Plot a contour plot of a variable along the nozzle.
         Parameters
         ----------
@@ -403,28 +404,30 @@ class Mac_Cormack:
         variable_name : str
             Name of the variable for labeling the plot.
         """
+        # Interpolation des données pour une meilleure résolution sur l'affichage
+        x_interpolated = np.linspace(x[0], x[-1], n_interpolated)
+        variable_interpolated = np.interp(x_interpolated, x, variable)
+
         # Créer la grille Y symétrique autour de 0
-        y = np.linspace(-1, 1, ny)
-        X, Y = np.meshgrid(x, y)
+        y = np.linspace(-max(r), max(r), n_interpolated)
+        X, Y = np.meshgrid(x_interpolated, y)
 
         # 3. Masque pour rester dans la géométrie de la tuyère
-        R_2D = np.interp(X[0], x, r)  # rayon au point x
-        R_2D = np.tile(R_2D, (ny, 1))
-
-        mask = np.abs(Y) <= R_2D
+        R_lin = interp1d(x, r, kind='linear')
+        mask = np.abs(Y) <= R_lin(x_interpolated)
 
         # 4. Étendre le champ de Mach en 2D
-        variable_2D = np.tile(variable, (ny, 1))
+        variable_2D = np.tile(variable_interpolated, (n_interpolated, 1))
 
         # Appliquer le masque
         variable_2D[~mask] = np.nan  # on met à NaN l'extérieur de la tuyère
 
         plt.figure(figsize=(12, 4))
-        contour = plt.contourf(X, Y, variable_2D, levels=50, cmap='plasma')
+        plt.contourf(X, Y, variable_2D, levels=50, cmap='plasma')
         plt.colorbar(label=variable_name)
         plt.title(f'Contour of {variable_name} along the nozzle')
-        plt.xlabel('Axial Position')
-        plt.ylabel('Radius')
+        plt.xlabel(r'$x_{adim} [-]$')
+        plt.ylabel(r'$r_{adim} [-]$')
 
 if __name__ == '__main__':
 
@@ -440,7 +443,7 @@ if __name__ == '__main__':
     courant_number = 0.5
 
     mac_cormack = Mac_Cormack(V0, rho0, T0, A, delta_X, courant_number)
-    V_for_all_ite, rho_for_all_ite, T_for_all_ite = mac_cormack.loop_over_iterations(1400)
+    V_for_all_ite, rho_for_all_ite, T_for_all_ite = mac_cormack.loop_over_iterations(1000)
     mac_cormack.plot_evolution_during_loop(V_for_all_ite, rho_for_all_ite, T_for_all_ite)
     mac_cormack.plot_final_state(V_for_all_ite[-1], rho_for_all_ite[-1], T_for_all_ite[-1])
     mac_cormack.plot_residuals()
