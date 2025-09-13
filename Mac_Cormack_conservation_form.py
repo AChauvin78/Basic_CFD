@@ -4,7 +4,7 @@ from scipy.interpolate import interp1d
 
 class Mac_Cormack_Conservation_Form:
     """
-    A class to implement the MacCormack method for solving the compressible flow equations using the conservation form.
+    A class to implement the MacCormack method for solving the compressible flow equations using the conservation form of the equations.
 
     Attributes
     ----------
@@ -20,6 +20,12 @@ class Mac_Cormack_Conservation_Form:
         Spatial step size.
     courant_number : float
         Courant number for stability.
+    Cx : float
+        Coefficient for artificial viscosity (default is 0, meaning no artificial viscosity).
+    supersonic_exit : bool
+        If True, the exit is treated as supersonic (all variables float). If False, pressure at exit is fixed to pe.
+    pe : float
+        Exit pressure if supersonic_exit is False (default is None, meaning no pressure condition).
     gamma : float
         Specific heat ratio (default is 1.4 for air).
     residuals : dict
@@ -27,27 +33,35 @@ class Mac_Cormack_Conservation_Form:
     
     Methods
     -------
-    drho_over_dt(V, rho, type='forward')
-        Calculate the time derivative of density.
-    dV_over_dt(V, rho, T, type='forward')
-        Calculate the time derivative of velocity.
-    dT_over_dt(V, T, type='forward')
-        Calculate the time derivative of temperature.
+    rho(U1, A)
+        Calculate the density from the conservative variable U1 and area A.
+    V(U1, U2)
+        Calculate the velocity from the conservative variables U1 and U2.
+    T(U1, U2, U3)
+        Calculate the temperature from the conservative variables U1, U2, and U3.
+    p(U1, U2, U3)
+        Calculate the pressure from the conservative variables U1, U2, and U3 using p = rho*T.
+    F1(U2)
+        Calculate the flux F1 for the mass conservation equation.
+    F2(U1, U2, U3)
+        Calculate the flux F2 for the momentum conservation equation.
+    F3(U1, U2, U3)
+        Calculate the flux F3 for the energy conservation equation.
+    J2(U1, U2, U3)
+        Calculate the source term J2 for the momentum conservation equation.
+    dU_over_dt(U, F, J, type='forward')
+        Calculate the time derivative of the variable U using the flux F and source J.
+    artificial_viscosity(U, p)
+        Calculate the artificial viscosity for the variable U.
     calculate_next_step_t(V, rho, T)
         Calculate the next time step for velocity, density, and temperature.
     calculate_delta_t(T, V)
         Calculate the time step based on the Courant condition.
     loop_over_iterations(n_ite)
         Loop over a specified number of iterations to solve the flow equations.
-    plot_evolution_during_loop(V_for_all_ite, rho_for_all_ite, T_for_all_ite)
-        Plot the evolution of velocity, density, and temperature during iterations.
-    plot_final_state(V, rho, T)
-        Plot the final state profiles of velocity, density, and temperature.
-    plot_residuals()
-        Plot the residuals of the calculations.
     """
 
-    def __init__(self, V0, rho0, T0, A, delta_X, courant_number, supersonic=True, pe=None, gamma=1.4):
+    def __init__(self, V0, rho0, T0, A, delta_X, courant_number, Cx=0, supersonic_exit=True, pe=None, gamma=1.4):
         """ Initialize the MacCormack method with given parameters.
         Parameters
         ----------
@@ -63,6 +77,12 @@ class Mac_Cormack_Conservation_Form:
             Spatial step size.
         courant_number : float
             Courant number for stability.
+        Cx : float, optional
+            Coefficient for artificial viscosity (default is 0, meaning no artificial viscosity).
+        supersonic_exit : bool, optional
+            If True, the exit is treated as supersonic (all variables float). If False, pressure at exit is fixed to pe (default is True).
+        pe : float, optional
+            Exit pressure if supersonic_exit is False (default is None, meaning no pressure condition).
         gamma : float, optional
             Specific heat ratio (default is 1.4 for air).
         """
@@ -73,7 +93,8 @@ class Mac_Cormack_Conservation_Form:
         self.A = A
         self.delta_X = delta_X
         self.courant_number = courant_number
-        self.supersonic = supersonic
+        self.Cx = Cx
+        self.supersonic_exit = supersonic_exit
         self.pe = pe
         self.gamma = gamma
         self.residuals = {'U1': [], 'U2': [], 'U3': []}
@@ -242,6 +263,27 @@ class Mac_Cormack_Conservation_Form:
         # Add ghost points to maintain the same length as the original array
         dU_over_dt = np.concatenate(([0], dU_over_dt, [0]))
         return dU_over_dt
+    
+    def artificial_viscosity(self, U, p):
+        """Calculate the artificial viscosity for the variable U.
+        Parameters
+        ----------
+        U : np.ndarray
+            The conservative variable for which to calculate the artificial viscosity.
+        p : np.ndarray
+            The pressure profile used in the calculation.
+        Returns
+        -------
+        np.ndarray
+            Artificial viscosity for the conservative variable U.
+        """
+        delta_X = self.delta_X
+        i = list(range(1, len(U)-1))
+        next_i = list(range(2, len(U)))
+        previous_i = list(range(len(U)-2))
+        S = np.zeros(len(U))
+        S[i] = self.Cx * (abs(p[next_i] - 2*p[i] + p[previous_i])) / (p[next_i] + 2*p[i] + p[previous_i]) * (U[next_i] - 2*U[i] + U[previous_i])
+        return S
 
     def calculate_next_step_t(self, U1, U2, U3):
         """Calculate the next time step for velocity, density, and temperature using the MacCormack method.
@@ -278,10 +320,16 @@ class Mac_Cormack_Conservation_Form:
         dU2_over_dt = self.dU_over_dt(U2, F2, J2, type='forward')
         dU3_over_dt = self.dU_over_dt(U3, F3, 0*U3, type='forward')
 
+        # Calculate the artificial viscosity
+        p = self.p(U1, U2, U3)
+        S1 = self.artificial_viscosity(U1, p)
+        S2 = self.artificial_viscosity(U2, p)
+        S3 = self.artificial_viscosity(U3, p)
+
         # calculate predicted values of rho, V and T
-        U1_predicted_next_step = U1 + dU1_over_dt*delta_t
-        U2_predicted_next_step = U2 + dU2_over_dt*delta_t
-        U3_predicted_next_step = U3 + dU3_over_dt*delta_t
+        U1_predicted_next_step = U1 + dU1_over_dt*delta_t + S1
+        U2_predicted_next_step = U2 + dU2_over_dt*delta_t + S2
+        U3_predicted_next_step = U3 + dU3_over_dt*delta_t + S3
 
         # calculate predicted fluxes and source terms
         F1_predicted_next_step = self.F1(U2_predicted_next_step)
@@ -303,10 +351,16 @@ class Mac_Cormack_Conservation_Form:
         self.residuals['U2'].append(np.max(np.abs(dU2_over_dt_averaged)))
         self.residuals['U3'].append(np.max(np.abs(dU3_over_dt_averaged)))
 
+        # Calculate the artificial viscosity
+        p_predicted_next_step = self.p(U1_predicted_next_step, U2_predicted_next_step, U3_predicted_next_step)
+        S1_predicted_next_step = self.artificial_viscosity(U1_predicted_next_step, p_predicted_next_step)
+        S2_predicted_next_step = self.artificial_viscosity(U2_predicted_next_step, p_predicted_next_step)
+        S3_predicted_next_step = self.artificial_viscosity(U3_predicted_next_step, p_predicted_next_step)
+
         # Corrected values of the flow field
-        U1_corrected_next_step = U1 + dU1_over_dt_averaged*delta_t
-        U2_corrected_next_step = U2 + dU2_over_dt_averaged*delta_t
-        U3_corrected_next_step = U3 + dU3_over_dt_averaged*delta_t
+        U1_corrected_next_step = U1 + dU1_over_dt_averaged*delta_t + S1_predicted_next_step
+        U2_corrected_next_step = U2 + dU2_over_dt_averaged*delta_t + S2_predicted_next_step
+        U3_corrected_next_step = U3 + dU3_over_dt_averaged*delta_t + S3_predicted_next_step
 
         # Compute the variables at the boundaries
         # At the inlet, only the velocity is allowed to float, rho and T are constant
@@ -314,7 +368,7 @@ class Mac_Cormack_Conservation_Form:
         U2_corrected_next_step[0] = 2*U2_corrected_next_step[1] - U2_corrected_next_step[2]
         U3_corrected_next_step[0] = U1_corrected_next_step[0] * (self.T0[0] / (self.gamma - 1) + self.gamma/2 * (U2_corrected_next_step[0]/U1_corrected_next_step[0])**2)
         # At the outlet, all the variables are allowed to float when supersonic
-        if self.supersonic:
+        if self.supersonic_exit:
             U1_corrected_next_step[-1] = 2*U1_corrected_next_step[-2] - U1_corrected_next_step[-3]
             U2_corrected_next_step[-1] = 2*U2_corrected_next_step[-2] - U2_corrected_next_step[-3]
             U3_corrected_next_step[-1] = 2*U3_corrected_next_step[-2] - U3_corrected_next_step[-3]
@@ -360,12 +414,14 @@ class Mac_Cormack_Conservation_Form:
         Returns
         -------
         tuple
-            V_for_all_ite : np.ndarray
-                Array of velocity profiles at each iteration.
-            rho_for_all_ite : np.ndarray
-                Array of density profiles at each iteration.
-            T_for_all_ite : np.ndarray
-                Array of temperature profiles at each iteration.
+            U1_for_all_ite : np.ndarray
+                Array containing the conservative variable for mass at each iteration.
+            U2_for_all_ite : np.ndarray
+                Array containing the conservative variable for momentum at each iteration.
+            U3_for_all_ite : np.ndarray
+                Array containing the conservative variable for energy at each iteration.
+            residuals : dict
+                Dictionary containing the residuals for U1, U2, and U3 at each iteration.
         """
         # Initialize the variables to save the values of the intermediate iterations to plot the evolution
         U1_for_all_ite = np.zeros((n_ite, len(self.U1_0)))

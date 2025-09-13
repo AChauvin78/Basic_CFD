@@ -39,12 +39,6 @@ class Mac_Cormack:
         Calculate the time step based on the Courant condition.
     loop_over_iterations(n_ite)
         Loop over a specified number of iterations to solve the flow equations.
-    plot_evolution_during_loop(V_for_all_ite, rho_for_all_ite, T_for_all_ite)
-        Plot the evolution of velocity, density, and temperature during iterations.
-    plot_final_state(V, rho, T)
-        Plot the final state profiles of velocity, density, and temperature.
-    plot_residuals()
-        Plot the residuals of the calculations.
     """
 
     def __init__(self, V0, rho0, T0, A, delta_X, courant_number, supersonic=True, pe=None, gamma=1.4):
@@ -276,6 +270,8 @@ class Mac_Cormack:
                 Array of density profiles at each iteration.
             T_for_all_ite : np.ndarray
                 Array of temperature profiles at each iteration.
+            residuals : dict
+                Dictionary containing the residuals for density, velocity, and temperature at each iteration.
         """
         # Initialize the variables to save the values of the intermediate iterations to plot the evolution
         V_for_all_ite = np.zeros((n_ite, len(self.V0)))

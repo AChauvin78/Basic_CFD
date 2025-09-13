@@ -114,8 +114,8 @@ V_for_all_ite, rho_for_all_ite, T_for_all_ite,_ = mac_cormack.loop_over_iteratio
 
 # Get the results from the solver
 
-# nozzle = Nozzle(length=3, coeff_conv_div=2.2, discretization_points=61)
-nozzle = Nozzle(length=3, coeff_conv_div=2.2, coeff_conv_div_after_throat=0.2223, discretization_points=61)
+nozzle = Nozzle(length=3, coeff_conv_div=2.2, discretization_points=61)
+# nozzle = Nozzle(length=3, coeff_conv_div=2.2, coeff_conv_div_after_throat=0.2223, discretization_points=61)
 
 x, A = nozzle.discretize()
 r = nozzle.get_radius(x)
@@ -152,8 +152,8 @@ V0 = (0.1 + 0.11*x)
 courant_number = 0.5
 
 
-mac_cormack = Mac_Cormack_Conservation_Form(V0, rho0, T0, A, delta_X, courant_number, supersonic=False, pe=0.97)
-U1_for_all_ite, U2_for_all_ite, U3_for_all_ite, residuals = mac_cormack.loop_over_iterations(10000)
+mac_cormack = Mac_Cormack_Conservation_Form(V0, rho0, T0, A, delta_X, courant_number, Cx=0.2, supersonic_exit=False, pe=0.80)
+U1_for_all_ite, U2_for_all_ite, U3_for_all_ite, residuals = mac_cormack.loop_over_iterations(2000)
 print(f"U1 : {U1_for_all_ite[-1]}")
 print(f"U2 : {U2_for_all_ite[-1]}")
 print(f"U3 : {U3_for_all_ite[-1]}")
