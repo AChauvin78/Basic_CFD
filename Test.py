@@ -25,7 +25,7 @@ V0 = (0.1 + 1.09*x)*T0**(1/2)
 courant_number = 0.5
 
 mac_cormack = Mac_Cormack(V0, rho0, T0, A, delta_X, courant_number)
-V_for_all_ite, rho_for_all_ite, T_for_all_ite = mac_cormack.loop_over_iterations(1000)
+V_for_all_ite, rho_for_all_ite, T_for_all_ite,_ = mac_cormack.loop_over_iterations(1000)
 
 df_sim = pd.DataFrame({
     "I": list(range(1, 32)),
@@ -105,25 +105,7 @@ pe = 0.93
 courant_number = 0.5
 
 mac_cormack = Mac_Cormack(V0, rho0, T0, A, delta_X, courant_number, supersonic=False, pe=pe)
-V_for_all_ite, rho_for_all_ite, T_for_all_ite = mac_cormack.loop_over_iterations(5000)
-
-# from matplotlib import pyplot as plt
-# mac_cormack.plot_evolution_during_loop(V_for_all_ite, rho_for_all_ite, T_for_all_ite)
-# mac_cormack.plot_final_state(V_for_all_ite[-1], rho_for_all_ite[-1], T_for_all_ite[-1])
-# mac_cormack.plot_residuals()
-# Mach = V_for_all_ite[-1] / (T_for_all_ite[-1]**(1/2))
-# mac_cormack.plot_contour(x, r, Mach, 'Mach')
-# plt.show()
-
-df_sim = pd.DataFrame({
-    "I": list(range(1, 32)),
-    "x/L": x,
-    "A/A*": A,
-    "rho/rho0": rho_for_all_ite[-1],
-    "V/a0": V_for_all_ite[-1],
-    "T/T0": T_for_all_ite[-1]
-})
-
+V_for_all_ite, rho_for_all_ite, T_for_all_ite,_ = mac_cormack.loop_over_iterations(5000)
 
 
 #######################################
