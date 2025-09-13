@@ -1,10 +1,18 @@
+from Nozzle import Nozzle
+from Mac_Cormack import Mac_Cormack
+from Mac_Cormack_conservation_form import Mac_Cormack_Conservation_Form
+from Plot import Plot
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+
+#######################################
+#  Mac_Cormack_Non_Conservation_Form  #
+#######################################
+
 # SUPERSONIC TEST CASE
 
 # Get the results from the solver
-
-from Nozzle import Nozzle
-from Mac_Cormack import Mac_Cormack
-import pandas as pd
 
 nozzle = Nozzle(length=3, coeff_conv_div=2.2, discretization_points=31)
 x, A = nozzle.discretize()
@@ -27,12 +35,6 @@ df_sim = pd.DataFrame({
     "V/a0": V_for_all_ite[-1],
     "T/T0": T_for_all_ite[-1]
 })
-
-# mac_cormack.plot_evolution_during_loop(V_for_all_ite, rho_for_all_ite, T_for_all_ite)
-# mac_cormack.plot_final_state(V_for_all_ite[-1], rho_for_all_ite[-1], T_for_all_ite[-1])
-# mac_cormack.plot_residuals()
-# Mach = V_for_all_ite[-1] / (T_for_all_ite[-1]**(1/2))
-# mac_cormack.plot_contour(x, r, Mach, 'Mach')
 
 # Compare to the values from the book
 data = {
@@ -84,8 +86,8 @@ condition = (abs(df_sim - df_ref) > 5e-3).any().any()
 print(f"Test passed : {not condition}")   # False si au moins une valeur > 5e-3, sinon True
 
 
-
 # SUBSONIC TEST CASE
+
 # Get the results from the solver
 from Nozzle import Nozzle
 from Mac_Cormack import Mac_Cormack
@@ -105,13 +107,13 @@ courant_number = 0.5
 mac_cormack = Mac_Cormack(V0, rho0, T0, A, delta_X, courant_number, supersonic=False, pe=pe)
 V_for_all_ite, rho_for_all_ite, T_for_all_ite = mac_cormack.loop_over_iterations(5000)
 
-from matplotlib import pyplot as plt
-mac_cormack.plot_evolution_during_loop(V_for_all_ite, rho_for_all_ite, T_for_all_ite)
-mac_cormack.plot_final_state(V_for_all_ite[-1], rho_for_all_ite[-1], T_for_all_ite[-1])
-mac_cormack.plot_residuals()
-Mach = V_for_all_ite[-1] / (T_for_all_ite[-1]**(1/2))
-mac_cormack.plot_contour(x, r, Mach, 'Mach')
-plt.show()
+# from matplotlib import pyplot as plt
+# mac_cormack.plot_evolution_during_loop(V_for_all_ite, rho_for_all_ite, T_for_all_ite)
+# mac_cormack.plot_final_state(V_for_all_ite[-1], rho_for_all_ite[-1], T_for_all_ite[-1])
+# mac_cormack.plot_residuals()
+# Mach = V_for_all_ite[-1] / (T_for_all_ite[-1]**(1/2))
+# mac_cormack.plot_contour(x, r, Mach, 'Mach')
+# plt.show()
 
 df_sim = pd.DataFrame({
     "I": list(range(1, 32)),
@@ -122,3 +124,68 @@ df_sim = pd.DataFrame({
     "T/T0": T_for_all_ite[-1]
 })
 
+
+
+#######################################
+#    Mac_Cormack_Conservation_Form    #
+#######################################
+
+# Get the results from the solver
+
+# nozzle = Nozzle(length=3, coeff_conv_div=2.2, discretization_points=61)
+nozzle = Nozzle(length=3, coeff_conv_div=2.2, coeff_conv_div_after_throat=0.2223, discretization_points=61)
+
+x, A = nozzle.discretize()
+r = nozzle.get_radius(x)
+
+delta_X = x[1] - x[0]
+# rho0 = 1 - 0.3146*x
+# T0 = 1 - 0.2314*x
+# V0 = (0.1 + 1.09*x)*T0**(1/2)
+
+rho0 = 1 + 0.0*x
+T0 = 1 + 0.0*x
+V0 = (0.1 + 0.11*x)
+
+
+# rho0 = np.zeros(len(x))
+# for i in range(len(x)):
+#     if x[i] <= 0.5:
+#         rho0[i] = 1
+#     elif 0.5 < x[i] < 1.5:
+#         rho0[i] = 1 - 0.366*(x[i]-0.5)
+#     else:
+#         rho0[i] = 0.634 - 0.3879*(x[i]-1.5)
+# T0 = np.zeros(len(x))
+# for i in range(len(x)):
+#     if x[i] <= 0.5:
+#         T0[i] = 1
+#     elif 0.5 < x[i] < 1.5:
+#         T0[i] = 1 - 0.167*(x[i]-0.5)
+#     else:
+#         T0[i] = 0.833 - 0.3507*(x[i]-1.5)
+
+# V0 = 0.59 / (rho0 * A)
+
+courant_number = 0.5
+
+
+mac_cormack = Mac_Cormack_Conservation_Form(V0, rho0, T0, A, delta_X, courant_number, supersonic=False, pe=0.97)
+U1_for_all_ite, U2_for_all_ite, U3_for_all_ite, residuals = mac_cormack.loop_over_iterations(10000)
+print(f"U1 : {U1_for_all_ite[-1]}")
+print(f"U2 : {U2_for_all_ite[-1]}")
+print(f"U3 : {U3_for_all_ite[-1]}")
+
+V_for_all_ite, rho_for_all_ite, T_for_all_ite = mac_cormack.convert_U_to_primitive(U1_for_all_ite, U2_for_all_ite, U3_for_all_ite)
+
+print(f"V : {V_for_all_ite[-1]}")
+print(f"rho : {rho_for_all_ite[-1]}")
+print(f"T : {T_for_all_ite[-1]}")
+
+plot = Plot()
+plot.plot_evolution_during_loop(V_for_all_ite, rho_for_all_ite, T_for_all_ite)
+plot.plot_final_state(V_for_all_ite[-1], rho_for_all_ite[-1], T_for_all_ite[-1])
+plot.plot_residuals(residuals)
+Mach = V_for_all_ite[-1] / (T_for_all_ite[-1]**(1/2))
+plot.plot_contour(x, r, Mach, 'Mach')
+plt.show()
