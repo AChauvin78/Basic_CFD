@@ -1,5 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
+import streamlit as st
 
 class Nozzle:
     """
@@ -123,7 +124,7 @@ class Nozzle:
         # Discretized points used for calculation
         x_values_discretized = np.linspace(0, self.length, self.discretization_points)
 
-        plt.figure(figsize=(10, 5))
+        fig = plt.figure(figsize=(10, 5))
         plt.plot(x_values, y_values, color='C0', label='Nozzle Profile')
         plt.plot(x_values, -y_values, color='C0')
         plt.plot(x_values_discretized, np.zeros(self.discretization_points), label='Discretized Points\nused for calculation', marker='x', linestyle='--', color='red')
@@ -132,7 +133,9 @@ class Nozzle:
         plt.ylabel('Radius [-]')
         plt.grid()
         plt.legend()
-        plt.show()
+        # plt.show()
+        st.pyplot(fig)
+
 
 
 # Example usage

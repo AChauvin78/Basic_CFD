@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.interpolate import interp1d
+import streamlit as st
+
 
 class Plot:
     """Class for plotting results of the CFD simulation.
@@ -52,6 +54,8 @@ class Plot:
         axs[1, 1].set_xlabel('Iteration')
         axs[1, 1].set_ylabel('$Mach$ [-]')
 
+        st.pyplot(fig)
+
     def plot_final_state(self, V, rho, T):
         """Plot the final state profiles of velocity, density, and temperature.
         Parameters
@@ -95,6 +99,8 @@ class Plot:
         axs[1, 1].set_xlabel('Position')
         axs[1, 1].set_ylabel('$Mach$ [-]')
 
+        st.pyplot(fig)
+
     def plot_residuals(self, residuals):
         """Plot the residuals of the calculations.
         This method generates a plot showing the evolution of residuals for density, velocity, and temperature over the iterations.
@@ -115,6 +121,8 @@ class Plot:
         plt.yscale('log')
         plt.grid()
         plt.legend()
+
+        st.pyplot(fig)
 
     def plot_contour(self, x, r, variable, variable_name, n_interpolated=1000):
         """Plot a contour plot of a variable along the nozzle.
@@ -147,10 +155,11 @@ class Plot:
         # Appliquer le masque
         variable_2D[~mask] = np.nan  # on met à NaN l'extérieur de la tuyère
 
-        plt.figure(figsize=(12, 4))
+        fig = plt.figure(figsize=(12, 4))
         plt.contourf(X, Y, variable_2D, levels=50, cmap='plasma')
         plt.colorbar(label=variable_name)
         plt.title(f'Contour of {variable_name} along the nozzle')
         plt.xlabel(r'$x_{adim} [-]$')
         plt.ylabel(r'$r_{adim} [-]$')
 
+        st.pyplot(fig)
