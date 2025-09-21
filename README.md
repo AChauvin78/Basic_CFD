@@ -54,10 +54,14 @@ python Mac_Cormack.py
 Conservative solver:
 python Mac_Cormack_conservation_form.py
 
-📈 Visualization
+📸 Screenshots
 
-The Plot.py module generates plots for:
-- Velocity
-- Pressure
-- Density
-- Temperature
+![Nozzle Configuration](Screenshots/nozzle_config.png)
+
+![Flow Configuration](Screenshots/flow_config.png)
+
+![Mach Contour](Screenshots/mach_contour.png)
+
+![Flow variables](Screenshots/flow_values.png)
+
+![Residuals](Screenshots/residuals.png)
