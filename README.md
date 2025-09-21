@@ -15,13 +15,13 @@ This project implements a Python-based CFD solver to simulate compressible fluid
 
 📁 Repository Structure
 Basic_CFD/
-├─ Main.py                            # Streamlit interface to run simulations and view plots
-├─ Mac_Cormack.py                      # Standard MacCormack solver
-├─ Mac_Cormack_conservation_form.py    # Conservative form MacCormack solver
-├─ Nozzle.py                           # Nozzle geometry and boundary conditions
-├─ Plot.py                             # Plotting functions
-├─ Test.py                             # Unit tests
-└─ __pycache__/                        # Compiled Python files
+- Main.py                            # Streamlit interface to run simulations and view plots
+- Mac_Cormack.py                      # Standard MacCormack solver
+- c_Cormack_conservation_form.py    # Conservative form MacCormack solver
+- Nozzle.py                           # Nozzle geometry and boundary conditions
+- Plot.py                             # Plotting functions
+- Test.py                             # Unit tests
+- __pycache__/                        # Compiled Python files
 
 🚀 Installation
 
